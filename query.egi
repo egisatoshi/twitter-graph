@@ -1,0 +1,8 @@
+(define $q1
+  (match-all [user-data follow-data]
+    [[<cons <user $id1 ,"Egison_Lang" _>
+       <cons <user $id2 ,"__Egi" _>
+        _>>
+      <cons <follow $fid ,id2>
+       ^<cons <follow ,fid ,id1> _>>]
+     fid]))

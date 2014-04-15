@@ -1,0 +1,45 @@
+;(define $user-table
+;  (relational-matcher <database-table "twitter" "user">
+;    {["id" read show]
+;     ["screen_name id show]
+;     ["name" id show]}
+;    {}))
+;(define $follow-table
+;  (relational-matcher <database-table "twitter" "follow">
+;    {["from_id" read show]
+;     ["to_id" read show]}
+;    {}))
+
+(define $user-data <Database-table "twitter" "user">)
+(define $follow-data <Database-table "twitter" "follow">)
+
+(define $user-table
+  (matcher-dfs
+    {
+     [<cons <user ,$px $ $> $> [string string user-table]
+      {[$tgt (map (lambda [$n-1 $n-2] [n-1 n-2 tgt]) (pure-sqlite (database-name tgt) (simple-select {"screen_name" "name"} (table-name tgt) {["id" (show px)]})))]}]
+     [<cons <user $ ,$px $> $> [integer string user-table]
+      {[$tgt (map (lambda [$x $n-2] [(read x) n-2 tgt]) (pure-sqlite (database-name tgt) (simple-select {"id" "name"} (table-name tgt) {["screen_name" (show px)]})))]}]
+     [<cons <user $ $ ,$px> $> [integer string user-table]
+      {[$tgt (map (lambda [$x $n-1] [(read x) n-1 tgt]) (pure-sqlite (database-name tgt) (simple-select {"id" "screen_name"} (table-name tgt) {["name" (show px)]})))]}]
+     [$ [something]
+      {[$tgt {tgt}]}]
+     }))
+
+(define $follow-table
+  (matcher-dfs
+    {[<cons <follow ,$px ,$py> $> [follow-table]
+      {[$tgt (match (pure-sqlite (database-name tgt) (simple-select {"from_id to_id"} (table-name tgt) {["from_id" (show px)] ["to_id" (show py)]})) (list [integer integer])
+               {[<nil> {}]
+                [_ {tgt}]})]}]
+     [<cons <follow ,$px $> $> [integer follow-table]
+      {[$tgt (map (lambda [$x] [(read x) tgt]) (pure-sqlite (database-name tgt) (simple-select {"to_id"} (table-name tgt) {["from_id" (show px)]})))]}]
+     [<cons <follow $ ,$px> $> [integer follow-table]
+      {[$tgt (map (lambda [$x] [(read x) tgt]) (pure-sqlite (database-name tgt) (simple-select {"from_id"} (table-name tgt) {["to_id" (show px)]})))]}]
+     [$ [something]
+      {[$tgt {tgt}]}]
+     }))
+
+(define $show-records
+  (lambda [$recs]
+    {@"{\n" @(concat (map (lambda [$rec] {@" " @(show rec) @"\n"}) recs)) @"}"}))
